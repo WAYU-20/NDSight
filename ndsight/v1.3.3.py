@@ -1,12 +1,8 @@
-
-## [v1.3.2] - 2025-09-27
-### Move the video on to a Tkinter GUI window
-# Added a dropdown menu for future filters (currently disabled)
+# Added brightness adjuster on top of the feed
+# Add grayscale filter for the camera feed
 
 import cv2
 import numpy as np
-import tkinter as tk
-from PIL import Image, ImageTk
 import tkinter as tk
 from PIL import Image, ImageTk
 
@@ -16,29 +12,64 @@ body_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_upperb
 # --- Tkinter GUI integration ---
 class App:
     def __init__(self, window, window_title):
+        print("App __init__ started")
         self.window = window
         self.window.title(window_title)
         self.video_source = 0
         self.vid = cv2.VideoCapture(self.video_source)
+        if not self.vid.isOpened():
+            print("ERROR: Could not open video source.")
         self.prev_x = None
         self.direction = ""
         self.error_threshold = 10
 
-        # Add menu bar for future filters
+        self.brightness_slider = tk.Scale(
+            window,
+            from_=-100,
+            to=100,
+            orient=tk.HORIZONTAL,
+            label="Brightness",
+            length=300
+        )
+        self.brightness_slider.set(0)  # Default brightness
+        self.brightness_slider.pack()
+
+        # Add menu bar for filters
         self.menu_bar = tk.Menu(self.window)
         self.filter_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.filter_menu.add_command(label="No filters yet", state="disabled")
+
+        self.filter_menu.add_command(label="No Filter", command=self.set_no_filter)
+        self.filter_menu.add_separator()
+        self.filter_menu.add_command(label="Grayscale", command=self.set_grayscale)
         self.menu_bar.add_cascade(label="Filters", menu=self.filter_menu)
         self.window.config(menu=self.menu_bar)
-        self.canvas = tk.Label(window)
+
+        self.current_filter = "none"
+
+        self.canvas = tk.Label(self.window)
         self.canvas.pack()
+        print("App __init__ finished GUI setup")
         self.update()
         self.window.protocol("WM_DELETE_WINDOW", self.on_closing)
-        self.window.mainloop()
+
+    def set_no_filter(self):
+        self.current_filter = "none"
+
+    def set_grayscale(self):
+        self.current_filter = "grayscale"
 
     def update(self):
         ret, frame = self.vid.read()
+        print(f"update called, ret={ret}")
+        brightness_value = self.brightness_slider.get()
         if ret:
+            # Apply brightness
+            frame = cv2.convertScaleAbs(frame, alpha=1, beta=brightness_value)
+            # Apply filter
+            if self.current_filter == "grayscale":
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+
             overlay = frame.copy()
             h, w = frame.shape[:2]
             # Orange warning triangle
@@ -147,5 +178,8 @@ class App:
 
 
 if __name__ == "__main__":
+    print("Starting main...")
     root = tk.Tk()
     App(root, "NDsight - Full Body Detection GUI")
+    print("Main finished")
+    root.mainloop()
