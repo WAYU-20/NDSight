@@ -11,8 +11,7 @@ import tkinter as tk
 from PIL import Image, ImageTk
 
 # Load the full body Haar cascade
-body_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_upperbody.xml')
-
+body_cascade = cv2.CascadeClassifier(f"{cv2.data.haarcascades}haarcascade_upperbody.xml")
 
 # --- Tkinter GUI integration ---
 class App:
@@ -72,7 +71,7 @@ class App:
                 danger_bottom_left
             ], dtype=np.int32)
             cv2.fillPoly(overlay, [danger_points], (0, 0, 255))
-            alpha = 0.2
+            alpha = 0.1
             frame = cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0)
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             bodies = body_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3)
